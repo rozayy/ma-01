@@ -616,7 +616,6 @@
       // User location data (detected via IP)
       let userCity = 'Tangier'; // Default fallback
       let userCountry = 'MA'; // Default Morocco
-      let detectedLang = DEFAULT;
 
       // City name translations for different languages
       const CITY_NAMES = {
@@ -685,20 +684,7 @@
             userCity = data.city || 'Tangier';
             userCountry = data.country_code || 'MA';
 
-            // Detect language from country if available
-            const countryLangMap = {
-              'MA': 'fr', 'DZ': 'fr', 'TN': 'fr', // North Africa - French
-              'GB': 'en', 'US': 'en', 'CA': 'en', 'AU': 'en', 'IE': 'en', // English
-              'ES': 'es', 'MX': 'es', 'AR': 'es', 'CO': 'es', 'CL': 'es', // Spanish
-              'SA': 'ar', 'AE': 'ar', 'EG': 'ar', 'JO': 'ar', 'LB': 'ar' // Arabic
-            };
-
-            const countryLang = countryLangMap[userCountry];
-            if (countryLang && SUPPORTED.includes(countryLang)) {
-              detectedLang = countryLang;
-            }
-
-            console.log('[Location] Detected:', userCity, userCountry, detectedLang);
+            console.log('[Location] Detected:', userCity, userCountry);
           }
         } catch (error) {
           console.log('[Location] Detection failed, using defaults:', error.message);
@@ -707,18 +693,13 @@
 
       // Detect browser language, extract primary lang code
       function detectLang() {
-        // Priority: localStorage > detected from IP > browser language > default
+        // Priority: localStorage > browser language > default
         try {
           const stored = localStorage.getItem('lang');
           if (stored && SUPPORTED.includes(stored)) return stored;
         } catch (e) { }
 
-        // Use language detected from IP location
-        if (detectedLang && SUPPORTED.includes(detectedLang)) {
-          return detectedLang;
-        }
-
-        // Fallback to browser language
+        // Use browser language
         const browserLang = (navigator.language || navigator.userLanguage || DEFAULT).slice(0, 2).toLowerCase();
         return SUPPORTED.includes(browserLang) ? browserLang : DEFAULT;
       }
