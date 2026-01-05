@@ -610,19 +610,115 @@
       const SUPPORTED = ['fr', 'en', 'es', 'ar'];
       const DEFAULT = 'fr';
 
-      // COPY UPDATE: WhatsApp messages - urgency-based, action-driven
-      const WA_MESSAGES = {
-        fr: 'Bonjour%2C%20j%27ai%20besoin%20d%27une%20voiture%20maintenant%20%C3%A0%20Tanger.',
-        en: 'Hi%2C%20I%20need%20a%20car%20now%20in%20Tangier.',
-        es: 'Hola%2C%20necesito%20un%20coche%20ahora%20en%20T%C3%A1nger.',
-        ar: '%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D8%8C%20%D8%A3%D8%AD%D8%AA%D8%A7%D8%AC%20%D8%B3%D9%8A%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D8%A2%D9%86%20%D9%81%D9%8A%20%D8%B7%D9%86%D8%AC%D8%A9.'
+      // WhatsApp number
+      const WA_NUMBER = '447575894333';
+
+      // User location data (detected via IP)
+      let userCity = 'Tangier'; // Default fallback
+      let userCountry = 'MA'; // Default Morocco
+      let detectedLang = DEFAULT;
+
+      // City name translations for different languages
+      const CITY_NAMES = {
+        'Tangier': { fr: 'Tanger', en: 'Tangier', es: 'Tánger', ar: 'طنجة' },
+        'Casablanca': { fr: 'Casablanca', en: 'Casablanca', es: 'Casablanca', ar: 'الدار البيضاء' },
+        'Marrakech': { fr: 'Marrakech', en: 'Marrakech', es: 'Marrakech', ar: 'مراكش' },
+        'Rabat': { fr: 'Rabat', en: 'Rabat', es: 'Rabat', ar: 'الرباط' },
+        'Fes': { fr: 'Fès', en: 'Fes', es: 'Fez', ar: 'فاس' },
+        'Agadir': { fr: 'Agadir', en: 'Agadir', es: 'Agadir', ar: 'أكادير' },
+        // Generic fallback for unknown cities
+        'default': { fr: 'votre ville', en: 'your city', es: 'su ciudad', ar: 'مدينتك' }
       };
 
-      // WhatsApp number - REPLACE WITH ACTUAL NUMBER
-      const WA_NUMBER = '447575894333';
+      // WhatsApp message templates with city placeholder
+      const WA_MESSAGE_TEMPLATES = {
+        fr: 'Bonjour%2C%20j%27ai%20besoin%20d%27une%20voiture%20maintenant%20%C3%A0%20{city}.',
+        en: 'Hi%2C%20I%20need%20a%20car%20now%20in%20{city}.',
+        es: 'Hola%2C%20necesito%20un%20coche%20ahora%20en%20{city}.',
+        ar: '%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D8%8C%20%D8%A3%D8%AD%D8%AA%D8%A7%D8%AC%20%D8%B3%D9%8A%D8%A7%D8%B1%D8%A9%20%D8%A7%D9%84%D8%A2%D9%86%20%D9%81%D9%8A%20{city}.'
+      };
+
+      // Page title templates with city placeholder
+      const TITLE_TEMPLATES = {
+        fr: 'Location Voiture {city} | Aéroport | Sans Caution',
+        en: 'Rent a Car {city} | Airport | No Deposit',
+        es: 'Alquiler de Coches {city} | Aeropuerto | Sin Depósito',
+        ar: 'استئجار سيارة {city} | المطار | بدون وديعة'
+      };
+
+      // Get city name in specific language
+      function getCityName(city, lang) {
+        const cityKey = Object.keys(CITY_NAMES).find(key =>
+          key.toLowerCase() === city.toLowerCase()
+        );
+        if (cityKey && CITY_NAMES[cityKey]) {
+          return CITY_NAMES[cityKey][lang] || city;
+        }
+        return CITY_NAMES['default'][lang];
+      }
+
+      // Generate WhatsApp message with city and language
+      function getWhatsAppMessage(lang, city) {
+        const template = WA_MESSAGE_TEMPLATES[lang] || WA_MESSAGE_TEMPLATES[DEFAULT];
+        const cityName = getCityName(city, lang);
+        return template.replace('{city}', encodeURIComponent(cityName));
+      }
+
+      // Update page title with city and language
+      function updatePageTitle(lang, city) {
+        const template = TITLE_TEMPLATES[lang] || TITLE_TEMPLATES[DEFAULT];
+        const cityName = getCityName(city, lang);
+        document.title = template.replace('{city}', cityName);
+      }
+
+      // Detect user location via IP geolocation
+      async function detectLocation() {
+        try {
+          // Using ipapi.co - free tier allows 1000 requests/day
+          const response = await fetch('https://ipapi.co/json/', {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            userCity = data.city || 'Tangier';
+            userCountry = data.country_code || 'MA';
+
+            // Detect language from country if available
+            const countryLangMap = {
+              'MA': 'fr', 'DZ': 'fr', 'TN': 'fr', // North Africa - French
+              'GB': 'en', 'US': 'en', 'CA': 'en', 'AU': 'en', 'IE': 'en', // English
+              'ES': 'es', 'MX': 'es', 'AR': 'es', 'CO': 'es', 'CL': 'es', // Spanish
+              'SA': 'ar', 'AE': 'ar', 'EG': 'ar', 'JO': 'ar', 'LB': 'ar' // Arabic
+            };
+
+            const countryLang = countryLangMap[userCountry];
+            if (countryLang && SUPPORTED.includes(countryLang)) {
+              detectedLang = countryLang;
+            }
+
+            console.log('[Location] Detected:', userCity, userCountry, detectedLang);
+          }
+        } catch (error) {
+          console.log('[Location] Detection failed, using defaults:', error.message);
+        }
+      }
 
       // Detect browser language, extract primary lang code
       function detectLang() {
+        // Priority: localStorage > detected from IP > browser language > default
+        try {
+          const stored = localStorage.getItem('lang');
+          if (stored && SUPPORTED.includes(stored)) return stored;
+        } catch (e) { }
+
+        // Use language detected from IP location
+        if (detectedLang && SUPPORTED.includes(detectedLang)) {
+          return detectedLang;
+        }
+
+        // Fallback to browser language
         const browserLang = (navigator.language || navigator.userLanguage || DEFAULT).slice(0, 2).toLowerCase();
         return SUPPORTED.includes(browserLang) ? browserLang : DEFAULT;
       }
@@ -645,11 +741,16 @@
           btn.classList.toggle('active', btn.dataset.switchLang === lang);
         });
 
-        // Update sticky CTA WhatsApp link
-        const stickyBtn = document.getElementById('sticky-cta-btn');
-        if (stickyBtn) {
-          stickyBtn.href = `https://wa.me/${WA_NUMBER}?text=${WA_MESSAGES[lang]}`;
-        }
+        // Update page title with detected city
+        updatePageTitle(lang, userCity);
+
+        // Update ALL WhatsApp links with city-aware messages
+        const waMessage = getWhatsAppMessage(lang, userCity);
+        const waUrl = `https://wa.me/${WA_NUMBER}?text=${waMessage}`;
+
+        document.querySelectorAll('.cta-whatsapp').forEach(btn => {
+          btn.href = waUrl;
+        });
 
         // Store preference
         try { localStorage.setItem('lang', lang); } catch (e) { }
@@ -669,15 +770,18 @@
       }
 
       // Initialize on DOM ready
-      document.addEventListener('DOMContentLoaded', function () {
-        // Check stored preference, else detect
+      document.addEventListener('DOMContentLoaded', async function () {
+        // First, detect user location (async)
+        await detectLocation();
+
+        // Then check stored preference, else detect language
         let lang;
         try { lang = localStorage.getItem('lang'); } catch (e) { }
         if (!lang || !SUPPORTED.includes(lang)) {
           lang = detectLang();
         }
 
-        // Apply language
+        // Apply language with city-aware content
         switchLang(lang);
 
         // Bind language switcher buttons
