@@ -17,6 +17,16 @@
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
 
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-645066377"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'AW-645066377');
+  </script>
+
   <!-- ============================================
        VISUAL UPGRADE: Enhanced CSS with gradients,
        accent colors, shadows, and more whitespace
@@ -739,15 +749,22 @@
 
       // Track WhatsApp clicks (simple, no heavy analytics)
       function trackClick(el) {
-        // Google Analytics 4 (if loaded)
+        // Google Ads conversion tracking
         if (typeof gtag === 'function') {
+          // Track conversion for Google Ads
+          gtag('event', 'conversion', {
+            'send_to': 'AW-645066377/_Vo8CO780uIBEIndy7MC'
+          });
+
+          // Also track as custom event for analytics
           gtag('event', 'whatsapp_click', {
             'event_category': 'conversion',
-            'event_label': document.documentElement.lang || 'unknown'
+            'event_label': document.documentElement.lang || 'unknown',
+            'city': userCity || 'unknown'
           });
         }
         // Console log for debugging
-        console.log('[Conversion] WhatsApp click');
+        console.log('[Conversion] WhatsApp click tracked');
       }
 
       // Initialize on DOM ready
